@@ -1,42 +1,49 @@
 const getState = ({ getStore, getActions, setStore }) => {
 	return {
 		store: {
-			demo: [
-				{
-					title: "FIRST",
-					background: "white",
-					initial: "white"
-				},
-				{
-					title: "SECOND",
-					background: "white",
-					initial: "white"
-				}
-			]
+			contacts: []
 		},
 		actions: {
-			// Use getActions to call a function within a fuction
-			exampleFunction: () => {
-				getActions().changeColor(0, "green");
-			},
-			loadSomeData: () => {
-				/**
-					fetch().then().then(data => setStore({ "foo": data.bar }))
-				*/
-			},
-			changeColor: (index, color) => {
-				//get the store
-				const store = getStore();
-
-				//we have to loop the entire demo array to look for the respective index
-				//and change its color
-				const demo = store.demo.map((elm, i) => {
-					if (i === index) elm.background = color;
-					return elm;
-				});
-
-				//reset the global store
-				setStore({ demo: demo });
+			getContacts: async() => { 
+				let response = await fetch("https://playground.4geeks.com/contact/agendas/A-Whitbeck/contacts")
+				if (response.status == 404) {
+					getActions().createAgenda() 
+					console.log("No agenda with that slug found, creating a new one.");
+				} else if (response.status == 200) {
+					let data = await response.json()
+					console.log("This is the data from the contacts API", data);
+					setStore({contacts: data.contacts})
+				} else {
+					console.log(response.status, "Error occured while getting your contacts");
+				}
+				},
+				createAgenda: async() => {
+					let response = await fetch("https://playground.4geeks.com/contact/agendas/A-Whitbeck", {
+						method: "POST"						
+					})
+					if (response.status == 201) {
+						getActions().getContacts()
+						console.log("Successfully created agenda, fetching contacts.");
+					} else {
+						console.log("Error occured while attempting to create your agenda", response.status);
+					}
+				},
+				createContact: async(contactData) => {
+					let response = await fetch("https://playground.4geeks.com/contact/agendas/A-Whitbeck/contacts", {
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify(contactData)
+					})
+					if(response.status == 201) {
+						getActions().getContacts()
+						console.log("Success adding new contact, now fetching updated contact list.");
+						return true
+					} else {
+						console.log("An error occured while attempting to create a contact.", response.status);
+						return false
+					}
 			}
 		}
 	};
